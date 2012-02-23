@@ -1,1 +1,11 @@
-HTML5-based MT Connect Simulator
+This is the readme for the HTML5-based MT Connect simulator from CCAT
+
+This simulator works as an interactive tool for manually causing state changes in machine objects.  These machines have to be represented in an MT Connect agent somewhere on the web, and that agent has to be able to accept PUT requests for data items.
+
+The viewer requires a few files to function:
+	- raphael-min.js is the regular Raphael SVG library. This is used for generating the vector graphics that the user picks up and moves around
+	current.php - this script is what actually connects us to an agent in order to send PUT requests.  Because of request origin issues, web browsers won't let you send a request to a server other than the one that served the current page.  So I use PHP to essentially forward the URL to the actual agent address, and then return the agent's response
+	- MTConnectSim.js - this file creates an object called mts (short for MT Connect Simulator) that holds the object model for the simulator, as well as handles the display using Raphael
+	- index.html - this file establishes the divs required to display the simulator and any other data we want to show.  The javascript section deals with populating an mts.System object with process and machine information.
+
+The "API" for using the mts.System object shouldn't be too hard to get from reading the code in index.html.

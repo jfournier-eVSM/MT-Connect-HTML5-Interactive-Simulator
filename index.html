@@ -1,0 +1,181 @@
+<!--[if !IE]>-->
+<!DOCTYPE HTML>
+<!--<![endif]-->
+
+<!--[if gte IE 9]>-->
+<!DOCTYPE HTML>
+<!--<![endif]-->
+
+<html>
+<head>
+<title>CCAT Production Simulator</title>
+<script type="text/javascript" src="raphael-min.js"></script>
+<script type="text/javascript" src="MTConnectSim.js"></script>
+   <style>
+      h1 {font-size:40px;vertical-align:middle;}
+      #dashboard
+      {
+         position:absolute;
+         width: 30%;
+         height: 100%;
+         top:15px;
+         right:5px;
+         border-style:solid;
+         border-width:5px;
+      }
+      #timer
+      {
+         width: 100%;
+         height: 15%;
+         border-style: solid;
+         border-width: 5px;
+         text-align:center
+      }
+      #stats
+      {
+         position:absolute;
+         left: 10%;
+         width: 90%;
+         height: 50%;
+         text-align:left;
+      }
+      #partFinder
+      {
+         position:absolute;
+         left: 10%;
+         width: 90%;
+         height: 35%;
+         bottom: 1px;
+         text-align:left;
+      }
+      #OrderMore
+      {
+         position:absolute;
+         left: 30%;
+         top: 10px;
+      }
+      #RaphaelLink
+      {
+         position:fixed;
+         left: 30%;
+         bottom: 10px;
+         text-align:center;
+      }
+   </style>
+</head>
+
+<body>
+   <div id="OrderMore">
+      <input type="number" id="newOrder" value="" ><button id="orderMore" disabled="true" type="button" onclick="orderMoreOfSelected();">More</button>
+   </div>
+   <div id="MTConnectForm">
+      <label for="chkAutoRun">Auto Run</label>
+      <input type="checkbox" value="Auto Run" id="chkAutoRun" onclick="mts.ActiveSystem.enableDisableAutoRun();">
+      <label for="enableMTC">MTC</label>
+      <input type="checkbox" value="Enable MT Connect" id="enableMTC" onclick="mts.ActiveSystem.initialMTUpdate();">
+      <!--<input type="checkbox" value="Enable MT Connect" id="enableMTC" onclick="getElementById('mtcpass').style.display='';getElementById('passL').style.display='';">-->
+      <input type="password" id="mtcpass" onchange="mts.ActiveSystem.initialMTUpdate();" style="display:none">
+      <label id="passL" for="mtcpass" style="display:none">Password</label><br />
+   </div>
+
+   <div id="dashboard">
+      <div id="timer">
+         <h1>00:00</h1>
+      </div>
+      <div id="stats"></div>
+      <div id="partFinder"></div>
+   </div>
+
+
+<script type="text/javascript">
+   // start by creating an objs object, just to keep a list of all the different objects we're creating.  This just acts as a convenient location for me to access different machines.
+	var objs = {};
+	// create a new System object.  The system object is where all our machines, processes, and part types will go, as well as agents.
+	var sys = new mts.System();
+	// the next line creates a new device called dmg80, with a deviceid of dmg80-machine.  The deviceid has to match the deviceid for the machine on the MT Connect agent.
+	objs.dmg80 = sys.NewDevice('dmg80','dmg80-machine');
+	// this next line sets the dataitemid's for the different data items this simulator supports.  
+	objs.dmg80.dataItemIds = { spindleX: 'dmg80_4', spindleY: 'dmg80_6', status: 'dmg80_1', procCode: 'proc7', queueCode: 'queue7', power: 'power4' }
+	objs.dmg50 = sys.NewDevice('dmg50','dmg50-machine');
+	objs.dmg50.dataItemIds = { spindleX: 'dmg50_4', spindleY: 'dmg50_6', status: 'dmg50_1', procCode: 'proc5', queueCode: 'queue5', power: 'power5' }
+	objs.dmg130 = sys.NewDevice('dmg130','dmg130-machine');
+	objs.dmg130.dataItemIds = { spindleX: 'dmg130_4', spindleY: 'dmg130_6', status: 'dmg130_1', procCode: 'proc6', queueCode: 'queue6', power: 'power6' }
+	
+	objs.proc1 = sys.NewProcessDef('Laser 1',14000,3000);
+		objs.proc1.machine = objs.dmg80;
+	objs.proc2 = sys.NewProcessDef('Laser 2',28000,3000);
+		objs.proc2.machine = objs.dmg50;
+	objs.proc3 = sys.NewProcessDef('Laser 3',12000,3000);
+		objs.proc3.machine = objs.dmg130;
+
+   objs.proc4 = sys.NewProcessDef('Laser 4',18000,3000);
+      objs.proc4.machine = objs.dmg50;
+   objs.proc5 = sys.NewProcessDef('Laser 5',12000,3000);
+      objs.proc5.machine = objs.dmg80;
+   objs.proc6 = sys.NewProcessDef('Laser 6',15000,3000);
+      objs.proc6.machine = objs.dmg50;
+
+   objs.proc7 = sys.NewProcessDef('Laser 7',8000,3000);
+      objs.proc7.machine = objs.dmg130;
+   objs.proc8 = sys.NewProcessDef('Laser 8',6000,3000);
+      objs.proc8.machine = objs.dmg80;
+
+	objs.pt1 = sys.NewPartType('Part L1');
+	objs.pt1.AddProc(objs.proc1);
+	objs.pt1.AddProc(objs.proc2);
+	objs.pt1.AddProc(objs.proc3);
+	
+	objs.pt2 = sys.NewPartType('Part L2');
+	objs.pt2.AddProc(objs.proc4);
+	objs.pt2.AddProc(objs.proc5);
+	objs.pt2.AddProc(objs.proc6);
+	
+	objs.pt3 = sys.NewPartType('Part L3');
+	objs.pt3.AddProc(objs.proc7);
+	objs.pt3.AddProc(objs.proc8);
+
+	objs.ord1 = sys.NewOrder(objs.pt1,4);
+	objs.ord2 = sys.NewOrder(objs.pt2,3);
+	objs.ord3 = sys.NewOrder(objs.pt3,6);
+
+   objs.agent = sys.NewAgent('current.php');
+   objs.agent.addDevice(objs.dmg80);
+   objs.agent.addDevice(objs.dmg50);
+   objs.agent.addDevice(objs.dmg130);
+
+   // get the window dimensions, and save 25% of the width for a div to show selected entity status
+   var winWidth = window.innerWidth;
+   var winHeight = window.innerHeight;
+
+   var svgWidth = winWidth * .66;
+   //var svgWidth = winWidth * 1;
+   var divWidth = winWidth - svgWidth;
+   var svgHeight = winHeight * 1;
+   var divHeight = svgHeight;
+
+   var paper = Raphael(10,50,svgWidth,svgHeight);
+   sys.CreateNewOrdersOnCompletion = true;
+   sys.InitializeDrawing(paper,divWidth,divHeight,svgWidth);
+   mts.ActiveSystem = sys;
+   sys.startFlashing();
+
+   var orderMoreOfSelected = function(){
+   	var qty = document.getElementById('newOrder').value;
+   	var ptype = mts.ActiveSystem.SelectedPart.PartType;
+   	var currOrd = mts.ActiveSystem.NewOrder(ptype,qty);
+   	for(var j=0;j<currOrd.Parts.length;j++){
+   		var currPart = currOrd.Parts[j];
+   		currPart.initializeShape(paper);
+   	}
+      // initialize queue displays
+      for(var i=0;i<mts.ActiveSystem.Devices.length;i++){
+      	mts.ActiveSystem.Devices[i].arrangeQueueShapes();
+      }
+   }
+</script>
+   <div id="RaphaelLink">
+      Created using the <a href="http://raphaeljs.com" target="_blank">Raphael</a> graphics library<br/><a href="http://ccat.us" targe="_blank">CCAT Inc.</a>, 2011
+   </div>
+</body>
+
+</html>
