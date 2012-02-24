@@ -9,3 +9,16 @@ The viewer requires a few files to function:
 	- index.html - this file establishes the divs required to display the simulator and any other data we want to show.  The javascript section deals with populating an mts.System object with process and machine information.
 
 The "API" for using the mts.System object shouldn't be too hard to get from reading the code in index.html.
+
+Two non-standard data items in use with this tool are the procCode and queueCode attributes.  These are used at CCAT for tracking part/process and queue data, respectively.  These are subject to change, because parts are (hopefully) going to be in place for version 1.3 of the standard.
+
+The overall object model for the system is based around devices.  A device is basically a machine, which has an input queue, and output queue, and a processing area.  The input queue holds parts waiting for processing on the machine.  The output queue just acts as a routing tool, deciding what needs to be done next on the part dropped on it, and sending it to the appropriate place.  
+
+Next we have part types.  A part type acts as a blueprint for individual parts.  The PartType object simply holds a few attributes, as well as a sequence of process definitions.  There is also a Part object, which acts as an instance of an individual part.  This object handles the graphics required for displaying a part, as well as holds a list of the processes to be completed on the part (defined in the PartType).
+
+A process definition defines a process (duh), in terms of: how long is the setup time, how long is the process time, and what machine is it done on.  The ProcessDef object also creates Process instances, which are just objects representing one time that a particular ProcessDef gets run.  The Process instance really just holds data on the start time, end time, and what Part instance it ran.  When a PartType object creates a new Part instance, it creates new Process instances for each ProcessType in the sequence for the part.
+
+There is an Agent data type, which is just there to hold a base URL to send PUT requests to.  It also has a list of all the machines using that particular URL.  The device object handles the actual MT Connect interfacing, so the Agent isn't there for much.
+
+Once the initial set up is complete (i.e. providing the structure of our system (machines/devices,part types, processes, and agents), the main procedure for the simulator creates SVG graphics for the visible objects (devices, and part instances).  Actually, the main procedure tells those visible objects to create their SVG shapes.  When creating these shapes, the objects bind to DOM events in the browser so that when a user clicks on a part shape that the part moves with the mouse and when it's dropped it fires an event to the device to handle the part, etc...  The main point is that after the initial setup, there is no code running continuously (well, there is, but that's the browser performing what amounts to a discrete event engine's job).
+
